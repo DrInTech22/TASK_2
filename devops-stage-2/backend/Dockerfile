@@ -1,14 +1,12 @@
-# Use the official Ubuntu image
-FROM ubuntu:22.04
+# Use Python 3.10 image as base
+FROM python:3.10
 
 # Set the working directory in the container
 WORKDIR /app
 
-# Install dependencies and Python 3
+# Install curl and bash
 RUN apt-get update -y && \
     apt-get install -y --no-install-recommends \
-    python3 \
-    python3-pip \
     curl \
     bash \
     && rm -rf /var/lib/apt/lists/*
@@ -28,6 +26,10 @@ RUN poetry install
 # Make sure the prestart script is executable
 RUN chmod +x ./prestart.sh
 
+# Create an initialization script
+COPY init.sh /app/init.sh
+RUN chmod +x /app/init.sh
+
 # Set environment variables
 ENV PYTHONPATH=/app
 
@@ -37,6 +39,9 @@ EXPOSE 8000
 # Print Python and Poetry version for debugging
 RUN python3 --version && poetry --version
 
-# Run the prestart script and then start the Uvicorn server
-CMD ["bash", "-c", "poetry run bash ./prestart.sh && poetry run uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+# Set the entrypoint to the initialization script
+ENTRYPOINT ["/app/init.sh"]
+
+# Command to run the Uvicorn server
+CMD ["poetry", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 
