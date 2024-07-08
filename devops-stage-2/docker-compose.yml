@@ -1,0 +1,78 @@
+version: "3.8"
+services:
+  backend:
+    build:
+      context: ./backend
+    depends_on:
+      - db
+    networks:
+      - backend-network
+      - db-network
+
+  frontend:
+    build:
+      context: ./frontend
+    depends_on:
+      - backend
+    networks:
+      - frontend-network
+      - backend-network
+
+  db:
+    image: postgres:latest
+    container_name: postgres_db
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: changethis123
+      POSTGRES_DB: app
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - db-network
+
+  adminer:
+    image: adminer
+    container_name: adminer
+    ports:
+      - "8080:8080"
+    networks:
+      - db-network
+
+  proxy:
+    image: jc21/nginx-proxy-manager:latest
+    container_name: nginx_proxy_manager
+    ports:
+      - "8090:81"
+    volumes:
+      - data:/data
+      - letsencrypt:/etc/letsencrypt
+    networks:
+      - frontend-network
+      - backend-network
+      - db-network
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    ports:
+      - "80:80"
+    depends_on:
+      - frontend
+      - backend
+      - db
+      - adminer
+      - proxy
+    networks:
+      - frontend-network
+      - backend-network
+      - db-network
+
+volumes:
+  postgres_data:
+  data:
+  letsencrypt:
+
+networks:
+  frontend-network:
+  backend-network:
+  db-network:
